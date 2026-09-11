@@ -53,11 +53,12 @@ cmd_resolve() {
 tunnel_download() {
   [[ -z "${BS_TUNNEL_NO_DOWNLOAD:-}" ]] || die "BrowserStackLocal binary missing at $TUNNEL_BIN and download disabled"
   local os arch
-  case "$(uname -s)" in Darwin) os=darwin ;; Linux) os=linux ;; *) die "unsupported OS" ;; esac
-  case "$(uname -m)" in arm64|aarch64) arch=arm64 ;; x86_64) arch=x64 ;; *) die "unsupported arch" ;; esac
+  case "$(uname -s)" in Darwin) os=darwin; arch=x64 ;; Linux) os=linux ;; *) die "unsupported OS" ;; esac
+  # BrowserStackLocal ships only darwin-x64; Apple Silicon Macs run it via Rosetta
+  [[ "$os" != linux ]] || case "$(uname -m)" in arm64|aarch64) arch=arm64 ;; x86_64) arch=x64 ;; *) die "unsupported arch" ;; esac
   mkdir -p "$CACHE"
   echo "downloading BrowserStackLocal ($os-$arch)..." >&2
-  curl -sSL "https://www.browserstack.com/browserstack-local/BrowserStackLocal-$os-$arch.zip" -o "$CACHE/bsl.zip"
+  curl -sSL -L "https://www.browserstack.com/browserstack-local/BrowserStackLocal-$os-$arch.zip" -o "$CACHE/bsl.zip"
   unzip -oq "$CACHE/bsl.zip" -d "$CACHE" && rm "$CACHE/bsl.zip"
   chmod +x "$TUNNEL_BIN"
 }
