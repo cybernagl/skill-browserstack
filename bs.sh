@@ -58,7 +58,7 @@ tunnel_download() {
   [[ "$os" != linux ]] || case "$(uname -m)" in arm64|aarch64) arch=arm64 ;; x86_64) arch=x64 ;; *) die "unsupported arch" ;; esac
   mkdir -p "$CACHE"
   echo "downloading BrowserStackLocal ($os-$arch)..." >&2
-  curl -sSL -L "https://www.browserstack.com/browserstack-local/BrowserStackLocal-$os-$arch.zip" -o "$CACHE/bsl.zip"
+  curl -sSL "https://www.browserstack.com/browserstack-local/BrowserStackLocal-$os-$arch.zip" -o "$CACHE/bsl.zip"
   unzip -oq "$CACHE/bsl.zip" -d "$CACHE" && rm "$CACHE/bsl.zip"
   chmod +x "$TUNNEL_BIN"
 }
@@ -68,7 +68,7 @@ tunnel_id_arg() {  # parse optional --id, default to project basename
   if [[ "${1:-}" == "--id" ]]; then TUNNEL_ID=$2; fi
 }
 
-tunnel_running() { pgrep -f "BrowserStackLocal.*--local-identifier $TUNNEL_ID" >/dev/null; }
+tunnel_running() { pgrep -f -- "BrowserStackLocal.*--local-identifier $TUNNEL_ID( |$)" >/dev/null; }
 
 tunnel_ensure() {
   TUNNEL_ID=$1
