@@ -1,4 +1,4 @@
 [
-  { "device": "Samsung Galaxy S23", "os": "android", "os_version": "13.0", "real_mobile": true },
-  { "device": "iPhone 15", "os": "ios", "os_version": "17", "real_mobile": true }
+  { "device": "Samsung Galaxy S23", "os": "android", "os_version": "13.0", "realMobile": true },
+  { "device": "iPhone 15", "os": "ios", "os_version": "17", "realMobile": true }
 ]
