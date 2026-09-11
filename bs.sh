@@ -50,6 +50,20 @@ cmd_resolve() {
     node "$SKILL_DIR/lib/cli-resolve.mjs" "$PROJECT_DIR" "$@"
 }
 
+cmd_check() {
+  creds; bootstrap
+  local rc=0
+  BROWSERSTACK_USERNAME=$BS_USER BROWSERSTACK_ACCESS_KEY=$BS_KEY \
+    node "$SKILL_DIR/lib/cli-check.mjs" "$PROJECT_DIR" "$@" || rc=$?
+  if [[ $rc -eq 3 ]]; then           # runner asked for the tunnel
+    tunnel_ensure "$(basename "$PROJECT_DIR")"
+    BROWSERSTACK_USERNAME=$BS_USER BROWSERSTACK_ACCESS_KEY=$BS_KEY BS_TUNNEL_READY=1 \
+      node "$SKILL_DIR/lib/cli-check.mjs" "$PROJECT_DIR" "$@"
+  else
+    return $rc
+  fi
+}
+
 tunnel_download() {
   [[ -z "${BS_TUNNEL_NO_DOWNLOAD:-}" ]] || die "BrowserStackLocal binary missing at $TUNNEL_BIN and download disabled"
   local os arch
@@ -99,6 +113,7 @@ bs.sh - check apps and websites on declared platforms via BrowserStack
   bs.sh auth-source                where credentials come from (env|file)
   bs.sh resolve [--json]           manifest -> concrete target matrix
   bs.sh tunnel start|stop|status [--id I]  local tunnel for localhost targets
+  bs.sh check [SCRIPT.mjs] [--url U] [--local] [--parallel N]   pass/fail matrix
 USAGE
 }
 
@@ -107,5 +122,6 @@ case "${1:-}" in
   auth-check)  shift; cmd_auth_check "$@" ;;
   resolve)     shift; cmd_resolve "$@" ;;
   tunnel)      shift; cmd_tunnel "$@" ;;
+  check)       shift; cmd_check "$@" ;;
   *) usage; exit 1 ;;
 esac
