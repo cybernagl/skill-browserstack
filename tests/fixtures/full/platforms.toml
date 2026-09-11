@@ -1,0 +1,13 @@
+[web]
+browserslist = ["chrome 128", "safari 16.6"]
+devices = ["iPhone 15"]
+future_key = true
+
+[web.check]
+url = "https://example.com"
+local = false
+
+[app.android]
+app = "dist/app.apk"
+devices = ["Samsung Galaxy S23"]
+os = [">= 13"]
