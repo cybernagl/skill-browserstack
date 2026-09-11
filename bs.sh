@@ -56,7 +56,7 @@ cmd_check() {
   BROWSERSTACK_USERNAME=$BS_USER BROWSERSTACK_ACCESS_KEY=$BS_KEY \
     node "$SKILL_DIR/lib/cli-check.mjs" "$PROJECT_DIR" "$@" || rc=$?
   if [[ $rc -eq 3 ]]; then           # runner asked for the tunnel
-    tunnel_ensure "$(basename "$PROJECT_DIR")"
+    tunnel_ensure "${BS_TUNNEL_ID:-$(basename "$PROJECT_DIR")}"
     BROWSERSTACK_USERNAME=$BS_USER BROWSERSTACK_ACCESS_KEY=$BS_KEY BS_TUNNEL_READY=1 \
       node "$SKILL_DIR/lib/cli-check.mjs" "$PROJECT_DIR" "$@"
   else
@@ -83,16 +83,35 @@ tunnel_download() {
 
 tunnel_id_arg() {  # parse optional --id, default to project basename
   TUNNEL_ID=$(basename "$PROJECT_DIR")
-  if [[ "${1:-}" == "--id" ]]; then TUNNEL_ID=$2; fi
+  if [[ "${1:-}" == "--id" ]]; then
+    [[ $# -ge 2 ]] || die "usage: --id requires a value"
+    TUNNEL_ID=$2
+  fi
 }
 
 tunnel_running() { pgrep -f -- "BrowserStackLocal.*--local-identifier $TUNNEL_ID( |$)" >/dev/null; }
 
+# Starts the daemon with the access key kept off argv (never visible in `ps`):
+# the BrowserStackLocal binary has no env var for the key, so it goes into a
+# config-file YAML written under $CACHE with mode 600 and removed right
+# after. The daemon prints a JSON status line on start (observed on stderr,
+# despite the binary calling it a "daemon" response); that line, and the
+# binary's own browserstack.err, are both captured under $CACHE instead of
+# the CWD. A start that doesn't report state "connected" dies loudly with
+# the captured message rather than silently leaving the tunnel down.
 tunnel_ensure() {
   TUNNEL_ID=$1
   tunnel_running && return
   [[ -x "$TUNNEL_BIN" ]] || tunnel_download
-  "$TUNNEL_BIN" --key "$BS_KEY" --daemon start --local-identifier "$TUNNEL_ID" >/dev/null
+  mkdir -p "$CACHE"
+  local cfg="$CACHE/local-$TUNNEL_ID.yml" out="$CACHE/tunnel-start-$TUNNEL_ID.json" state
+  ( umask 077; printf "key: '%s'\n" "${BS_KEY//\'/\'\'}" > "$cfg" )
+  BROWSERSTACK_ERR_FILE="$CACHE/browserstack.err" "$TUNNEL_BIN" \
+    --config-file "$cfg" --daemon start --local-identifier "$TUNNEL_ID" \
+    --log-file "$CACHE/browserstack.log" >"$out" 2>&1
+  rm -f "$cfg"
+  state=$(jq -r '.state // empty' "$out" 2>/dev/null)
+  [[ "$state" == "connected" ]] || die "tunnel $TUNNEL_ID failed to start: $(cat "$out")"
   echo "tunnel $TUNNEL_ID started" >&2
 }
 
@@ -102,7 +121,7 @@ cmd_tunnel() {
   tunnel_id_arg "$@"
   case $action in
     start)  tunnel_ensure "$TUNNEL_ID"; echo "tunnel $TUNNEL_ID running" ;;
-    stop)   [[ -x "$TUNNEL_BIN" ]] && "$TUNNEL_BIN" --key "$BS_KEY" --daemon stop --local-identifier "$TUNNEL_ID" >/dev/null || true
+    stop)   [[ -x "$TUNNEL_BIN" ]] && "$TUNNEL_BIN" --daemon stop --local-identifier "$TUNNEL_ID" >/dev/null || true
             echo "tunnel $TUNNEL_ID stopped" ;;
     status) if tunnel_running; then echo "tunnel $TUNNEL_ID running"; else echo "tunnel $TUNNEL_ID not running"; fi ;;
     *) die "unknown tunnel action: $action" ;;
@@ -113,13 +132,13 @@ usage() {
   cat <<'USAGE'
 bs.sh - check apps and websites on declared platforms via BrowserStack
 
-  bs.sh auth-check                 verify credentials and show plan limits
-  bs.sh auth-source                where credentials come from (env|file)
-  bs.sh resolve [--json]           manifest -> concrete target matrix
-  bs.sh tunnel start|stop|status [--id I]  local tunnel for localhost targets
-  bs.sh check [SCRIPT.mjs] [--url U] [--local] [--parallel N]   pass/fail matrix
-  bs.sh shots [URL] [--out DIR]        render sweep across the matrix
-  bs.sh app ios|android [--fresh]     launch smoke on declared devices
+  bs.sh auth-check                                             verify credentials and show plan limits
+  bs.sh auth-source                                            where credentials come from (env|file)
+  bs.sh resolve [--json]                                       manifest -> concrete target matrix
+  bs.sh tunnel start|stop|status [--id I]                      local tunnel for localhost targets
+  bs.sh check [SCRIPT.mjs] [--url U] [--local] [--parallel N]  pass/fail matrix
+  bs.sh shots [URL] [--out DIR]                                render sweep across the matrix
+  bs.sh app ios|android [--fresh]                              launch smoke on declared devices
 USAGE
 }
 

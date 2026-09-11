@@ -22,6 +22,14 @@ test('tunnel status reports not running', () => {
   assert.match(r.out, /not running/);
 });
 
+test('--id with no value dies with usage, not an unbound-variable crash', () => {
+  const r = run(['tunnel', 'start', '--id'],
+    { BROWSERSTACK_USERNAME: 'u', BROWSERSTACK_ACCESS_KEY: 'k' });
+  assert.equal(r.code, 1);
+  assert.match(r.out, /--id/);
+  assert.doesNotMatch(r.out, /unbound variable/);
+});
+
 test('tunnel start without cached binary explains the download', () => {
   const home = mkdtempSync(path.join(tmpdir(), 'bs-'));
   // fake HOME so no binary is cached; BS_TUNNEL_NO_DOWNLOAD makes this testable offline
