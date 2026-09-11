@@ -5,6 +5,7 @@ set -euo pipefail
 SKILL_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 API="https://api.browserstack.com/automate"
 CACHE="$HOME/.cache/browserstack"
+PROJECT_DIR=${BS_PROJECT_DIR:-$PWD}
 
 die() { echo "bs: $*" >&2; exit 1; }
 
@@ -42,17 +43,25 @@ cmd_auth_check() {
   api GET "$API/plan.json" | jq -r '"plan ok: \(.parallel_sessions_max_allowed) parallels (\(.parallel_sessions_running) running)"'
 }
 
+cmd_resolve() {
+  creds; bootstrap
+  BROWSERSTACK_USERNAME=$BS_USER BROWSERSTACK_ACCESS_KEY=$BS_KEY \
+    node "$SKILL_DIR/lib/cli-resolve.mjs" "$PROJECT_DIR" "$@"
+}
+
 usage() {
   cat <<'USAGE'
 bs.sh - check apps and websites on declared platforms via BrowserStack
 
   bs.sh auth-check                 verify credentials and show plan limits
   bs.sh auth-source                where credentials come from (env|file)
+  bs.sh resolve [--json]           manifest -> concrete target matrix
 USAGE
 }
 
 case "${1:-}" in
   auth-source) shift; cmd_auth_source "$@" ;;
   auth-check)  shift; cmd_auth_check "$@" ;;
+  resolve)     shift; cmd_resolve "$@" ;;
   *) usage; exit 1 ;;
 esac
