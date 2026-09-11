@@ -16,7 +16,7 @@ BrowserStack app uploads expire server-side after a period of inactivity, so a c
 
 ## Device Names
 
-Declared device names are matched against BrowserStack's live device list at `https://api-cloud.browserstack.com/app-automate/devices.json`, cached for 24 hours in `~/.cache/browserstack/`. A name that does not match exactly, case and spacing included, resolves to zero devices, and `bs.sh app` exits with an error rather than skipping it silently.
+Declared device names are matched against BrowserStack's live device list at `https://api-cloud.browserstack.com/app-automate/devices.json`, cached for 24 hours in `~/.cache/browserstack/`. A name that does not match exactly, case and spacing included, resolves to zero devices for that name: `bs.sh app` warns on stderr naming the device rather than skipping it silently, and exits with an error only once no declared device matches at all.
 
 ## Appium Capabilities Used
 

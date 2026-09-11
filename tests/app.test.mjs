@@ -16,8 +16,17 @@ test('devices intersect with declared os ranges', () => {
     { device: 'Samsung Galaxy S23', os: 'android', os_version: '12.0' },
     { device: 'iPhone 15', os: 'ios', os_version: '17' },
   ];
-  const picked = pickAppDevices({ app: 'x.apk', devices: ['Samsung Galaxy S23'], os: ['>= 13'] }, appDevices, 'android');
+  const { picked, unmatched } = pickAppDevices({ app: 'x.apk', devices: ['Samsung Galaxy S23'], os: ['>= 13'] }, appDevices, 'android');
   assert.deepEqual(picked, [{ device: 'Samsung Galaxy S23', os_version: '13.0' }]);
+  assert.deepEqual(unmatched, []);
+});
+
+test('a declared device with zero matching rows is reported unmatched, not silently dropped', () => {
+  const appDevices = [{ device: 'Samsung Galaxy S23', os: 'android', os_version: '13.0' }];
+  const { picked, unmatched } = pickAppDevices(
+    { app: 'x.apk', devices: ['Samsung Galaxy S23', 'Pixel 9'], os: ['>= 13'] }, appDevices, 'android');
+  assert.deepEqual(picked, [{ device: 'Samsung Galaxy S23', os_version: '13.0' }]);
+  assert.deepEqual(unmatched, ['Pixel 9']);
 });
 
 test('--fresh bypasses a cache hit; a plain call still gets one', () => {

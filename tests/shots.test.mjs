@@ -10,19 +10,22 @@ const shotBrowsers = [
 
 test('targets map to screenshot descriptors by browser+major+os', () => {
   const targets = [
-    { kind: 'desktop', browser: 'chrome', browser_version: '128.0', os: 'Windows', os_version: '11' },
-    { kind: 'ios', device: 'iPhone 15', os: 'ios', os_version: '17' },
+    { label: 'chrome 128 on Windows 11', kind: 'desktop', browser: 'chrome', browser_version: '128.0', os: 'Windows', os_version: '11' },
+    { label: 'iPhone 15 (ios 17)', kind: 'ios', device: 'iPhone 15', os: 'ios', os_version: '17' },
   ];
-  const picked = pickShotBrowsers(targets, shotBrowsers);
+  const { picked, unmatched } = pickShotBrowsers(targets, shotBrowsers);
   assert.equal(picked.length, 2);
   assert.equal(picked[0].browser, 'chrome');
   assert.equal(picked[1].device, 'iPhone 15');
+  assert.deepEqual(unmatched, []);
 });
 
 test('unmatchable targets are dropped with a note', () => {
-  const targets = [{ kind: 'desktop', browser: 'chrome', browser_version: '42.0', os: 'Windows', os_version: '11' }];
-  const picked = pickShotBrowsers(targets, shotBrowsers);
+  const targets = [{ label: 'chrome 42 on Windows 11', kind: 'desktop', browser: 'chrome', browser_version: '42.0', os: 'Windows', os_version: '11' }];
+  const { picked, unmatched } = pickShotBrowsers(targets, shotBrowsers);
   assert.equal(picked.length, 0);
+  assert.equal(unmatched.length, 1);
+  assert.equal(unmatched[0].label, 'chrome 42 on Windows 11');
 });
 
 test('summarizeShots marks done screenshots with an image as ok, and names them', () => {
