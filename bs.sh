@@ -93,25 +93,38 @@ tunnel_running() { pgrep -f -- "BrowserStackLocal.*--local-identifier $TUNNEL_ID
 
 # Starts the daemon with the access key kept off argv (never visible in `ps`):
 # the BrowserStackLocal binary has no env var for the key, so it goes into a
-# config-file YAML written under $CACHE with mode 600 and removed right
-# after. The daemon prints a JSON status line on start (observed on stderr,
-# despite the binary calling it a "daemon" response); that line, and the
-# binary's own browserstack.err, are both captured under $CACHE instead of
-# the CWD. A start that doesn't report state "connected" dies loudly with
-# the captured message rather than silently leaving the tunnel down.
+# config-file YAML written under $CACHE with mode 600. Its lifetime is
+# guarded by an EXIT trap set before it is ever written, plus an
+# unconditional rm right after the daemon call: either one alone would miss
+# a case (the trap alone would still need clearing so it doesn't linger for
+# the rest of the script; the bare rm alone would never run if `set -e`
+# aborted the script when the binary itself exited non-zero, which is
+# exactly the bug this guards against). The daemon's own exit status is
+# captured with `|| status=$?` so that abort never happens. The daemon
+# prints a JSON status line on start (observed on stderr, despite the
+# binary calling it a "daemon" response); that line, the binary's own
+# browserstack.err, and its --log-file all land under $CACHE (never the
+# CWD) and, like the key file, are written under umask 077 so they are
+# owner-only too. A start that doesn't report state "connected" dies
+# loudly with the captured message rather than silently leaving the
+# tunnel down.
 tunnel_ensure() {
   TUNNEL_ID=$1
   tunnel_running && return
   [[ -x "$TUNNEL_BIN" ]] || tunnel_download
   mkdir -p "$CACHE"
-  local cfg="$CACHE/local-$TUNNEL_ID.yml" out="$CACHE/tunnel-start-$TUNNEL_ID.json" state
+  local cfg="$CACHE/local-$TUNNEL_ID.yml" out="$CACHE/tunnel-start-$TUNNEL_ID.json" state status=0
+  trap 'rm -f "$cfg"' EXIT
   ( umask 077; printf "key: '%s'\n" "${BS_KEY//\'/\'\'}" > "$cfg" )
-  BROWSERSTACK_ERR_FILE="$CACHE/browserstack.err" "$TUNNEL_BIN" \
-    --config-file "$cfg" --daemon start --local-identifier "$TUNNEL_ID" \
-    --log-file "$CACHE/browserstack.log" >"$out" 2>&1
+  ( umask 077
+    BROWSERSTACK_ERR_FILE="$CACHE/browserstack.err" "$TUNNEL_BIN" \
+      --config-file "$cfg" --daemon start --local-identifier "$TUNNEL_ID" \
+      --log-file "$CACHE/browserstack.log" >"$out" 2>&1
+  ) || status=$?
   rm -f "$cfg"
-  state=$(jq -r '.state // empty' "$out" 2>/dev/null)
-  [[ "$state" == "connected" ]] || die "tunnel $TUNNEL_ID failed to start: $(cat "$out")"
+  trap - EXIT
+  state=$(jq -r '.state // empty' "$out" 2>/dev/null) || true
+  [[ "$state" == "connected" ]] || die "tunnel $TUNNEL_ID failed to start (daemon exited $status): $(cat "$out")"
   echo "tunnel $TUNNEL_ID started" >&2
 }
 
