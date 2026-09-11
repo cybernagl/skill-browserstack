@@ -64,6 +64,8 @@ cmd_check() {
   fi
 }
 
+cmd_shots() { creds; bootstrap; BROWSERSTACK_USERNAME=$BS_USER BROWSERSTACK_ACCESS_KEY=$BS_KEY node "$SKILL_DIR/lib/cli-shots.mjs" "$PROJECT_DIR" "$@"; }
+
 tunnel_download() {
   [[ -z "${BS_TUNNEL_NO_DOWNLOAD:-}" ]] || die "BrowserStackLocal binary missing at $TUNNEL_BIN and download disabled"
   local os arch
@@ -114,6 +116,7 @@ bs.sh - check apps and websites on declared platforms via BrowserStack
   bs.sh resolve [--json]           manifest -> concrete target matrix
   bs.sh tunnel start|stop|status [--id I]  local tunnel for localhost targets
   bs.sh check [SCRIPT.mjs] [--url U] [--local] [--parallel N]   pass/fail matrix
+  bs.sh shots [URL] [--out DIR]        render sweep across the matrix
 USAGE
 }
 
@@ -123,5 +126,6 @@ case "${1:-}" in
   resolve)     shift; cmd_resolve "$@" ;;
   tunnel)      shift; cmd_tunnel "$@" ;;
   check)       shift; cmd_check "$@" ;;
+  shots)       shift; cmd_shots "$@" ;;
   *) usage; exit 1 ;;
 esac
