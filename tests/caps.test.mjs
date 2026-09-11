@@ -26,3 +26,15 @@ test('webdriver payload uses bstack:options', () => {
   assert.equal(am['bstack:options'].localIdentifier, 'id1');
   assert.equal(am['bstack:options'].userName, 'u');
 });
+
+test('webdriver payload carries deviceName/realMobile for a real-device target', () => {
+  // The WebDriver tail now also serves real iOS devices, not only desktop
+  // browsers: deviceName/realMobile must reach bstack:options for those.
+  const iosTarget = { label: 'iPhone 15 (ios 17)', driver: 'webdriver', kind: 'ios',
+    browser: 'safari', os: 'ios', os_version: '17', device: 'iPhone 15', real_mobile: true };
+  const p = webdriverPayload(iosTarget, creds, { name: 'n', build: 'b', local: false });
+  const opts = p.capabilities.alwaysMatch['bstack:options'];
+  assert.equal(opts.deviceName, 'iPhone 15');
+  assert.equal(opts.realMobile, true);
+  assert.equal(opts.osVersion, '17');
+});

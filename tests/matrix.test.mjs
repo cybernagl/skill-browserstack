@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildMatrix } from '../lib/matrix.mjs';
+import { resolveQueries, mapEntries } from '../lib/families.mjs';
 
 const automate = JSON.parse(readFileSync(new URL('./fixtures/browsers.json', import.meta.url)));
 const appDevices = JSON.parse(readFileSync(new URL('./fixtures/app-devices.json', import.meta.url)));
@@ -28,7 +29,27 @@ test('ios versions bind to declared devices', () => {
   const ios = targets.find((t) => t.kind === 'ios');
   assert.equal(ios.device, 'iPhone 15');
   assert.equal(ios.os_version, '17');
-  assert.equal(ios.driver, 'playwright');
+  // A chromium CDP client cannot drive iOS Safari: the WebDriver tail is
+  // the generic path, so ios web targets route through it. Android stays
+  // playwright (Chrome on Android is chromium).
+  assert.equal(ios.driver, 'webdriver');
+});
+
+test('android versions still route through playwright', () => {
+  // and_chr has only one live major in caniuse-lite at a time, so derive it
+  // here instead of hardcoding a version that will go stale.
+  const androidMajor = mapEntries(resolveQueries(['and_chr 128'], process.cwd())).android[0];
+  const localCapsData = { automate: [...automate,
+    { os: 'android', os_version: `${androidMajor}.0`, browser: 'android', browser_version: null,
+      device: 'Samsung Galaxy S24', real_mobile: true }],
+    appDevices };
+  const { targets } = buildMatrix(
+    manifest({ browserslist: ['chrome 128', 'and_chr 128'], devices: ['iPhone 15', 'Samsung Galaxy S24'] }),
+    localCapsData,
+  );
+  const android = targets.find((t) => t.kind === 'android');
+  assert.ok(android, 'expected an android target to resolve');
+  assert.equal(android.driver, 'playwright');
 });
 
 test('unavailable version is a gap, not a silent drop', () => {

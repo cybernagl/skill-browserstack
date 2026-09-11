@@ -12,6 +12,8 @@ Every WebDriver session goes through one endpoint:
 
 `BS_WEBDRIVER_URL` is always this value. `BS_WD_PAYLOAD` is a JSON string: the capabilities payload for the session-create call.
 
+`BS_WSS_URL` and `BS_WD_PAYLOAD` both embed the BrowserStack access key (in the query string and in `bstack:options.accessKey`). A script must never log either verbatim.
+
 ## The Payload Shape
 
     {
@@ -31,7 +33,17 @@ Every WebDriver session goes through one endpoint:
       }
     }
 
-Firefox and Safari always fall into the tail path (BrowserStack has no Playwright endpoint for them), so a tail target is always a desktop one here: `os`/`osVersion` only, no `deviceName`. `deviceName` and `realMobile` exist in the payload builder for a future real-device tail path, but a real-device target (`ios_saf`, Android) is always Playwright-driven today, so those fields go unused in practice. `local` and `localIdentifier` appear in `bstack:options` when the target needs the tunnel (`[web.check].local = true`); `bs.sh` sets both automatically.
+Firefox and Safari always fall into the tail path (BrowserStack has no Playwright endpoint for them), and so does `ios_saf`: a chromium CDP client cannot drive iOS Safari, so real iPhone/iPad targets go through the tail too. Android stays Playwright-driven (Chrome on Android is chromium).
+
+A desktop tail target carries `os`/`osVersion` only, no `deviceName`:
+
+    "bstack:options": { "os": "OS X", "osVersion": "Ventura" }
+
+A real-device iOS tail target adds `deviceName` and `realMobile`:
+
+    "bstack:options": { "os": "ios", "osVersion": "17", "deviceName": "iPhone 15", "realMobile": true }
+
+`local` and `localIdentifier` appear in `bstack:options` when the target needs the tunnel (`[web.check].local = true`); `bs.sh` sets both automatically.
 
 ## Session Walkthrough (curl)
 
