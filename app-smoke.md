@@ -39,7 +39,7 @@ The launch smoke's session-create payload:
       }
     }
 
-Sessions run two at a time (the pool bounds concurrency). Each session waits 8 seconds after launch for the app to settle, takes a screenshot through the same WebDriver `/session/<id>/screenshot` endpoint a browser check uses, and deletes the session whether the run passed or failed.
+Sessions run two at a time (the pool bounds concurrency). Each session waits 8 seconds after launch for the app to settle, takes a screenshot through the standard WebDriver `/session/<id>/screenshot` endpoint (the built-in web check never calls this endpoint), and deletes the session whether the run passed or failed.
 
 ## Extending Beyond the Launch Smoke
 

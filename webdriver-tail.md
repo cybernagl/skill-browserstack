@@ -18,13 +18,11 @@ Every WebDriver session goes through one endpoint:
       "capabilities": {
         "alwaysMatch": {
           "browserName": "safari",
-          "browserVersion": "15.4",
+          "browserVersion": "16.6",
           "bstack:options": {
             "os": "OS X",
-            "osVersion": "Monterey",
-            "deviceName": "iPhone 15",
-            "realMobile": true,
-            "sessionName": "check ios_saf 17.5",
+            "osVersion": "Ventura",
+            "sessionName": "check safari 16.6",
             "buildName": "whoslive-check",
             "userName": "...",
             "accessKey": "..."
@@ -33,7 +31,7 @@ Every WebDriver session goes through one endpoint:
       }
     }
 
-`deviceName` and `realMobile` appear only for a real-device target; a desktop target carries `os`/`osVersion` alone. `local` and `localIdentifier` appear in `bstack:options` when the target needs the tunnel (`[web.check].local = true`); `bs.sh` sets both automatically.
+Firefox and Safari always fall into the tail path (BrowserStack has no Playwright endpoint for them), so a tail target is always a desktop one here: `os`/`osVersion` only, no `deviceName`. `deviceName` and `realMobile` exist in the payload builder for a future real-device tail path, but a real-device target (`ios_saf`, Android) is always Playwright-driven today, so those fields go unused in practice. `local` and `localIdentifier` appear in `bstack:options` when the target needs the tunnel (`[web.check].local = true`); `bs.sh` sets both automatically.
 
 ## Session Walkthrough (curl)
 
