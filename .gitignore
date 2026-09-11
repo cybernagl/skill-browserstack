@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+.env
+.env.*
+*.key
+credentials*
+node_modules/
+*.tgz
