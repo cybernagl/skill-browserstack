@@ -119,7 +119,7 @@ bs.sh - check apps and websites on declared platforms via BrowserStack
   bs.sh tunnel start|stop|status [--id I]  local tunnel for localhost targets
   bs.sh check [SCRIPT.mjs] [--url U] [--local] [--parallel N]   pass/fail matrix
   bs.sh shots [URL] [--out DIR]        render sweep across the matrix
-  bs.sh app ios|android                launch smoke on declared devices
+  bs.sh app ios|android [--fresh]     launch smoke on declared devices
 USAGE
 }
 

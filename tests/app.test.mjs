@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseOsRange, pickAppDevices } from '../lib/app.mjs';
+import { parseOsRange, pickAppDevices, cacheLookup } from '../lib/app.mjs';
 
 test('os ranges parse', () => {
   assert.ok(parseOsRange('>= 13')('13.0'));
@@ -18,4 +18,10 @@ test('devices intersect with declared os ranges', () => {
   ];
   const picked = pickAppDevices({ app: 'x.apk', devices: ['Samsung Galaxy S23'], os: ['>= 13'] }, appDevices, 'android');
   assert.deepEqual(picked, [{ device: 'Samsung Galaxy S23', os_version: '13.0' }]);
+});
+
+test('--fresh bypasses a cache hit; a plain call still gets one', () => {
+  const cache = { deadbeef: 'bs://cached-id' };
+  assert.equal(cacheLookup(cache, 'deadbeef', false), 'bs://cached-id');
+  assert.equal(cacheLookup(cache, 'deadbeef', true), undefined);
 });
