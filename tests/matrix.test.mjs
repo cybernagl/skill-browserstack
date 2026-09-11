@@ -41,3 +41,12 @@ test('mobile family without declared device is a gap', () => {
   const { gaps } = buildMatrix(manifest({ devices: [] }), capsData);
   assert.ok(gaps.some((g) => g.reason.includes('declare a device')));
 });
+
+test('declared device unused by any mobile browserslist family is a gap', () => {
+  const { gaps } = buildMatrix(
+    manifest({ browserslist: ['safari 16.6', 'firefox 130'], devices: ['Samsung Galaxy S24'] }),
+    capsData,
+  );
+  assert.ok(gaps.some((g) => g.entry === 'device Samsung Galaxy S24'
+    && /no mobile browserslist family/.test(g.reason)));
+});
